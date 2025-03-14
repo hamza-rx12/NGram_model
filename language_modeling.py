@@ -192,6 +192,6 @@ class NgramLanguageModel:
 
 
 if __name__ == "__main__":
-    lm = NgramLanguageModel("ngramv1.train", ngram_size=3)
+    lm = NgramLanguageModel("data/ngramv1.train", ngram_size=3)
     print(lm.predict_ngram("NOT IN A TREE !", ngram_size=3))
-    lm.test_perplexity("ngramv1.test", ngram_size=3)
+    lm.test_perplexity("data/ngramv1.test", ngram_size=3)

@@ -64,17 +64,38 @@ class LanguageModel(NgramLanguageModel):
         # print(tokenized_sentences)
         return tokenized_sentences
 
-    def generateText(self, ngram_size=2):
-        sentence = ["<s>"] * (ngram_size - 1)
-        while sentence[-1] != "</s>":
-            current_word = sentence[-1]
-            next_words = self.model[current_word]
-            next_word = np.random.choice(
-                list(next_words.keys()), p=list(next_words.values())
-            )
-            sentence.append(next_word)
+    def generateText(self, ngram_size=2, max_length=100):
+        current_context = ["<s>"] * (ngram_size - 1)
+        generated_text = []
 
-        return " ".join(sentence[1:-1])
+        for _ in range(max_length):
+            context_tuple = tuple(current_context)
+            possible_next_words = [
+                ngram[-1] for ngram in self.ngram_counts if ngram[:-1] == context_tuple
+            ]
+            if not possible_next_words:
+                break
+
+            probabilities = np.array(
+                [
+                    (self.ngram_counts[context_tuple + (word,)] + self.k)
+                    / (
+                        self.context_counts[context_tuple]
+                        + self.k * len(self.ngram_counts)
+                    )
+                    for word in possible_next_words
+                ]
+            )
+            probabilities /= probabilities.sum()  # Normalize to get probabilities
+
+            next_word = np.random.choice(possible_next_words, p=probabilities)
+            if next_word == "</s>":
+                break
+
+            generated_text.append(next_word)
+            current_context = current_context[1:] + [next_word]
+
+        return " ".join(generated_text)
 
 
 if __name__ == "__main__":
@@ -82,9 +103,11 @@ if __name__ == "__main__":
 
     start = time.time()
 
-    lm = LanguageModel("data/big_data.txt", ngram_size=3)
-    print(lm.predict_ngram("I'm doing it", ngram_size=3))
-    print(lm.test_perplexity("data/ngramv1.test", ngram_size=3))
+    ngram_size = 3
+    lm = LanguageModel("data/big_data.txt", ngram_size=ngram_size)
+    # print(lm.predict_ngram("I'm doing it", ngram_size=3))
+    # print(lm.test_perplexity("data/ngramv1.test", ngram_size=3))
+    print(lm.generateText(ngram_size=ngram_size))
 
     end = time.time()
     print(f"Total time taken: {end - start} seconds")
