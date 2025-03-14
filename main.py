@@ -22,6 +22,8 @@ from nltk.tokenize import sent_tokenize
 
 from language_modeling import NgramLanguageModel
 from collections import Counter
+import pickle
+import os
 import numpy as np
 
 
@@ -30,28 +32,37 @@ class LanguageModel(NgramLanguageModel):
         super().__init__(infile, ngram_size)
 
     def prepare_data(self, infile, ngram_size=2):
-        with open(infile, "r") as file:
-            data = file.read().lower()
-        sentences = sent_tokenize(data)
-        # print(sentences)
-        sentences = [
-            ("<s> " * (ngram_size - 1) + sent + " </s>").split() for sent in sentences
-        ]
+        tokenized_file = f"{infile}_tokenized_{ngram_size}.pkl"
+        if os.path.exists(tokenized_file):
+            with open(tokenized_file, "rb") as file:
+                tokenized_sentences = pickle.load(file)
+            print("Loaded tokenized sentences from file.")
 
-        tokens = Counter(word for sent in sentences for word in sent)
+        else:
+            with open(infile, "r") as file:
+                data = file.read().lower()
+            ####### main processing ########
+            sentences = sent_tokenize(data)
+            sentences = [
+                ("<s> " * (ngram_size - 1) + sent + " </s>").split()
+                for sent in sentences
+            ]
 
-        tokenized_sentences = [
-            [word if tokens[word] > 1 else "<UNK>" for word in sent]
-            for sent in sentences
-        ]
-        print(tokenized_sentences)
+            tokens = Counter(word for sent in sentences for word in sent)
+
+            tokenized_sentences = [
+                [word if tokens[word] > 1 else "<UNK>" for word in sent]
+                for sent in sentences
+            ]
+            ################################
+            print("Tokenized sentences calculated.")
+
+            # Save the tokenized sentences to a file
+            with open(tokenized_file, "wb") as file:
+                pickle.dump(tokenized_sentences, file)
+                print("Tokenized sentences saved to file.")
+        # print(tokenized_sentences)
         return tokenized_sentences
-
-    # def train(self, infile, ngram_size=2):
-    #     super().train(infile, ngram_size)
-
-    # def test_perplexity(self, sentence):
-    #     return super().perplexity(sentence)
 
     def generateText(self, ngram_size=2):
         sentence = ["<s>"] * (ngram_size - 1)
@@ -67,6 +78,13 @@ class LanguageModel(NgramLanguageModel):
 
 
 if __name__ == "__main__":
+    import time
+
+    start = time.time()
+
     lm = LanguageModel("data/big_data.txt", ngram_size=3)
     print(lm.predict_ngram("I'm doing it", ngram_size=3))
     print(lm.test_perplexity("data/ngramv1.test", ngram_size=3))
+
+    end = time.time()
+    print(f"Total time taken: {end - start} seconds")

@@ -17,7 +17,7 @@ class NgramLanguageModel:
 
         if infile is None or ngram_size is None:
             return
-        self.prepare_data(infile, ngram_size)
+        # self.prepare_data(infile, ngram_size)
         self.train(infile, ngram_size)
 
     def prepare_data(self, infile, ngram_size=2):
